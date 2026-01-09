@@ -9,3 +9,11 @@ They have asked you if you can help create the following:
     Terraform code that deploys an EKS cluster (whatever latest version is currently available) into a new dedicated VPC
 
     The terraform code should also deploy Karpenter with node pool(s) that can deploy both x86 and arm64 instances
+
+
+
+# Deploy Terraform
+
+terraform init
+
+terraform apply
