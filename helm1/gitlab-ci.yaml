@@ -1,0 +1,22 @@
+stages:
+  - package
+
+variables:
+  HELM_VERSION: "3.14.0"
+
+package_chart:
+  stage: package
+  image: alpine:3.19
+  before_script:
+    - apk add --no-cache curl tar gzip
+    - curl -sSL https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz | tar -xz
+    - mv linux-amd64/helm /usr/local/bin/helm
+  script:
+    - helm lint ./fleetdm
+    - helm package ./fleetdm --destination dist
+  artifacts:
+    paths:
+      - dist/*.tgz
+  rules:
+    - changes:
+      - ./fleetdm/**/*
