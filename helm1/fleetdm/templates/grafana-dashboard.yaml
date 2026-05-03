@@ -1,0 +1,4 @@
+{{- if .Capabilities.APIVersions.Has "grafana.integreatly.org/v1beta1" -}}
+### Here would be a grafana dashboard...
+### If there was one
+{{- end }}

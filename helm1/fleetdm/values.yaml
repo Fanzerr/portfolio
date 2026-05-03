@@ -1,0 +1,102 @@
+global:
+  # This annotations and labels will be applied to all resources
+  annotatons: {}
+  labels: {}
+
+fleet:
+  automigration: true
+  deployment:
+    annotations: {}
+    labels: {}
+    podLabels: {}
+    image: fleetdm/fleet:v4.84.1
+    imagePullPolicy: IfNotPresent
+    replicas: 1
+    podAntiAffinity: true
+    cmd:
+    - /usr/bin/fleet
+    args:
+    - serve
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+    restartPolicy: Always
+  logging:
+    debug: false
+    json: false
+  tls: false
+  service:
+    annotations: {}
+    labels: {}
+  ingress:
+    enabled: true
+    annotations: {}
+    labels: {}
+    ingressClassName: nginx
+    host: fleet-ui.example.local
+    tls:
+      enabled: false
+  hpa:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    cpuUtilization: 70
+    memoryValue: 1Gi
+  vuln:
+    enabled: true
+    annotations: {}
+    labels: {}
+    schedule: 0 * * * *
+    logging:
+      debug: false
+      json: false
+    
+# Not yet implemented
+  monitoring:
+    exporter:
+      enabled: true
+    dashboard:
+      enabled: true
+      folder: Dashboards
+    alerts:
+      enabled: true
+
+
+mysql:
+  commonAnnotations: {}
+  commonLabels: {}
+  architecture: standalone
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 8Gi
+### Do not change this ↓
+  image:
+    repository: bitnamilegacy/mysql
+  auth:
+    database: fleet
+    username: fleet
+    existingSecret: fleet-password
+### Do not change this ↑
+
+redis:
+  commonAnnotations: {}
+  commonLabels: {}
+  architecture: standalone
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 8Gi
+### Do not change this ↓
+  image:
+    repository: bitnamilegacy/redis
+  auth:
+    existingSecret: fleet-password
+    existingSecretPasswordKey: redis-password
+### Do not change this ↑
+
+

@@ -1,0 +1,133 @@
+{{- if .Values.fleet.vuln.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+  {{- with .Values.global.annotations }}
+  {{- toYaml . | trim | nindent 4 }}
+  {{- end }}
+  {{- with .Values.fleet.vuln.annotations }}
+  {{- toYaml . | trim | nindent 4 }}
+  {{- end }}
+  labels:
+    app: fleet
+    release: {{ .Release.Name }}
+  {{- with .Values.global.labels }}
+  {{- toYaml . | trim | nindent 4 }}
+  {{- end }}
+  {{- with .Values.fleet.vuln.labels }}
+  {{- toYaml . | trim | nindent 4 }}
+  {{- end }}
+  name: fleet-{{ .Release.Name }}-vulnprocessing
+  namespace: {{ .Release.Namespace }}
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      creationTimestamp: null
+    spec:
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            app: fleet
+            release: {{ .Release.Name }}
+          {{- with .Values.global.labels }}
+          {{- toYaml . | trim | nindent 12 }}
+          {{- end }}
+          {{- with .Values.fleet.vuln.labels }}
+          {{- toYaml . | trim | nindent 12 }}
+          {{- end }}
+        spec:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+              - podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                      - fleet
+                  topologyKey: kubernetes.io/hostname
+                weight: 100
+          containers:
+          - args:
+            - |
+              /usr/bin/fleet vuln_processing;
+            command:
+            - /bin/sh
+            - -c
+            env:
+            - name: FLEET_VULNERABILITIES_DATABASES_PATH
+              value: /tmp/vuln
+            - name: FLEET_LOGGING_DEBUG
+              value: {{ .Values.fleet.vuln.logging.debug | quote }}
+            - name: FLEET_LOGGING_JSON
+              value: {{ .Values.fleet.vuln.logging.json | quote }}
+            - name: FLEET_LOGGING_DISABLE_BANNER
+              value: "false"
+            - name: FLEET_MYSQL_ADDRESS
+              value: {{ .Release.Name }}-mysql:3306
+            - name: FLEET_MYSQL_DATABASE
+              value: fleet
+            - name: FLEET_MYSQL_USERNAME
+              value: fleet
+            - name: FLEET_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: fleet-password
+                  name: mysql-password
+            - name: FLEET_MYSQL_MAX_OPEN_CONNS
+              value: "50"
+            - name: FLEET_MYSQL_MAX_IDLE_CONNS
+              value: "50"
+            - name: FLEET_MYSQL_CONN_MAX_LIFETIME
+              value: "0"
+            - name: FLEET_REDIS_ADDRESS
+              value: {{ .Release.Name }}-redis-master:6379
+            - name: FLEET_REDIS_DATABASE
+              value: "0"
+            - name: FLEET_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: fleet-password
+                  name: redis-password
+            - name: FLEET_SERVER_PRIVATE_KEY
+            image: {{ .Values.fleet.deployment.image }}
+            imagePullPolicy: {{ .Values.fleet.deployment.imagePullPolicy }}
+            name: fleet-vulnprocessing
+            {{- if .Values.fleet.vuln.resources }}
+            resources:
+              {{- with .Values.fleet.deployment.resources }}
+              {{- toYaml . | trim | nindent 14 }}
+              {{- end }} 
+            {{- end }}
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              privileged: false
+              readOnlyRootFilesystem: true
+              runAsGroup: 3333
+              runAsNonRoot: true
+              runAsUser: 3333
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          restartPolicy: Never
+          serviceAccount: fleet
+          serviceAccountName: fleet
+          shareProcessNamespace: true
+          terminationGracePeriodSeconds: 30
+          volumes:
+          - emptyDir: {}
+            name: tmp
+      ttlSecondsAfterFinished: 100
+  schedule: {{ .Values.fleet.vuln.schedule }}
+  successfulJobsHistoryLimit: 3
+{{- end }}
